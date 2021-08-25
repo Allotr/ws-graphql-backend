@@ -1,0 +1,24 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: allotr-ws-graphql-backend
+  namespace: openfaas-fn
+  labels:
+    app: allotr-ws-graphql-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: allotr-ws-graphql-backend
+  template:
+    metadata:
+      labels:
+        app: allotr-ws-graphql-backend
+    spec:
+      containers:
+        - name: allotr-ws-graphql-backend
+          image: rafaelpernil/allotr-ws-graphql-backend:production
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+      restartPolicy: Always
