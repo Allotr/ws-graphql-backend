@@ -72,6 +72,7 @@ function initializeGooglePassport(app: express.Express) {
                         surname: profile.name?.familyName,
                         userPreferences: {},
                         oauthIds: { googleId: profile.id },
+                        pushURLs: []
                     };
                     await db.collection<UserDbObject>('users').insertOne(userToCreate)
                     done(null, userToCreate);

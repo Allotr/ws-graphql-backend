@@ -11,7 +11,7 @@ specifiers:
   '@types/passport': ^1.0.7
   '@types/passport-google-oauth20': ^2.0.9
   '@types/ws': ^7.4.4
-  allotr-graphql-schema-types: 0.0.7
+  allotr-graphql-schema-types: 0.0.8
   connect-mongo: ^4.5.0
   cors: ^2.8.5
   dotenv: ^10.0.0
@@ -41,7 +41,7 @@ dependencies:
   '@types/ioredis': 4.27.0
   '@types/passport': 1.0.7
   '@types/passport-google-oauth20': 2.0.9
-  allotr-graphql-schema-types: 0.0.7
+  allotr-graphql-schema-types: 0.0.8
   connect-mongo: 4.5.0
   cors: 2.8.5
   dotenv: 10.0.0
@@ -849,11 +849,27 @@ packages:
       '@types/express': 4.17.13
     dev: false
 
+  /@types/prop-types/15.7.4:
+    resolution: {integrity: sha512-rZ5drC/jWjrArrS8BR6SIr4cWpW09RNTYt9AMZo3Jwwif+iacXAqgVjm0B0Bv/S1jhDXKHqRVNCbACkJ89RAnQ==}
+    dev: false
+
   /@types/qs/6.9.7:
     resolution: {integrity: sha512-FGa1F62FT09qcrueBA6qYTrJPVDzah9a+493+o2PCXsesWHIn27G98TsSMs3WPNbZIEj4+VJf6saSFpvD+3Zsw==}
 
   /@types/range-parser/1.2.4:
     resolution: {integrity: sha512-EEhsLsD6UsDM1yFhAvy0Cjr6VwmpMWqFBCb9w07wVugF7w9nfajxLuVmngTIpgS6svCnm6Vaw+MZhoDCKnOfsw==}
+
+  /@types/react/17.0.19:
+    resolution: {integrity: sha512-sX1HisdB1/ZESixMTGnMxH9TDe8Sk709734fEQZzCV/4lSu9kJCPbo2PbTRoZM+53Pp0P10hYVyReUueGwUi4A==}
+    dependencies:
+      '@types/prop-types': 15.7.4
+      '@types/scheduler': 0.16.2
+      csstype: 3.0.8
+    dev: false
+
+  /@types/scheduler/0.16.2:
+    resolution: {integrity: sha512-hppQEBDmlwhFAXKJX2KnWLYu5yMfi91yazPb2l+lbJiwW+wdo1gNeRA+3RgNSO39WYX2euey41KEwnqesU2Jew==}
+    dev: false
 
   /@types/serve-static/1.13.10:
     resolution: {integrity: sha512-nCkHGI4w7ZgAdNkrEu0bv+4xNV/XDqW+DydknebMOQwkpDGx8G+HTlj7R7ABI8i8nKxVw0wtKPi1D+lPOkh4YQ==}
@@ -901,12 +917,12 @@ packages:
     hasBin: true
     dev: true
 
-  /allotr-graphql-schema-types/0.0.7:
-    resolution: {integrity: sha512-SfoLwKDx4jNKc57ydloC1PW6WZa8EBLVVGBHZpAWZsvNA0HbCGCIE2XhBM6PMxUobUQNo2GKi7HfNPavigKwxQ==}
+  /allotr-graphql-schema-types/0.0.8:
+    resolution: {integrity: sha512-jPacp9gugujv4krKFBVmu10hdRfH7SuC6OWP8khYIvWHhW7yxR7uHAYmJYpnSwAq0x0SbN2EqR8bz8UZuLBK2Q==}
     dependencies:
       '@graphql-codegen/typescript-mongodb': 2.1.2_graphql@15.5.1
+      '@types/react': 17.0.19
       graphql: 15.5.1
-      mongodb: 4.1.1
     transitivePeerDependencies:
       - graphql-tag
       - supports-color
@@ -1381,6 +1397,10 @@ packages:
     resolution: {integrity: sha512-v1plID3y9r/lPhviJ1wrXpLeyUIGAZ2SHNYTEapm7/8A9nLPoyvVp3RK/EPFqn5kEznyWgYZNsRtYYIWbuG8KA==}
     engines: {node: '>=8'}
     dev: true
+
+  /csstype/3.0.8:
+    resolution: {integrity: sha512-jXKhWqXPmlUeoQnF/EhTtTl4C9SnrxSH/jZUih3jmO6lBKr99rP3/+FmrMj4EFpOXzMtXHAZkd3x0E6h6Fgflw==}
+    dev: false
 
   /debug/2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
