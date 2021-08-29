@@ -11,7 +11,7 @@ specifiers:
   '@types/passport': ^1.0.7
   '@types/passport-google-oauth20': ^2.0.9
   '@types/ws': ^7.4.4
-  allotr-graphql-schema-types: 0.0.8
+  allotr-graphql-schema-types: 0.0.9
   connect-mongo: ^4.5.0
   cors: ^2.8.5
   dotenv: ^10.0.0
@@ -41,7 +41,7 @@ dependencies:
   '@types/ioredis': 4.27.0
   '@types/passport': 1.0.7
   '@types/passport-google-oauth20': 2.0.9
-  allotr-graphql-schema-types: 0.0.8
+  allotr-graphql-schema-types: 0.0.9
   connect-mongo: 4.5.0
   cors: 2.8.5
   dotenv: 10.0.0
@@ -917,8 +917,8 @@ packages:
     hasBin: true
     dev: true
 
-  /allotr-graphql-schema-types/0.0.8:
-    resolution: {integrity: sha512-jPacp9gugujv4krKFBVmu10hdRfH7SuC6OWP8khYIvWHhW7yxR7uHAYmJYpnSwAq0x0SbN2EqR8bz8UZuLBK2Q==}
+  /allotr-graphql-schema-types/0.0.9:
+    resolution: {integrity: sha512-4L66+6OU1NNZ8YI6dgVfyCUcraRja81npAfEBJ/eetElhDJ4/SAScOpSMwFggKguXYl6hApC8kbOxEc/beQlfQ==}
     dependencies:
       '@graphql-codegen/typescript-mongodb': 2.1.2_graphql@15.5.1
       '@types/react': 17.0.19

@@ -75,6 +75,8 @@ function initializeGooglePassport(app: express.Express) {
                         pushURLs: []
                     };
                     await db.collection<UserDbObject>('users').insertOne(userToCreate)
+                    await db.collection<UserDbObject>('users').createIndex( { username: "text", name: "text", surname: "text" } )
+
                     done(null, userToCreate);
                 }
             })

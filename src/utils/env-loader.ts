@@ -11,6 +11,8 @@ export class EnvLoader {
             GOOGLE_CLIENT_SECRET: undefined,
             SESSION_SECRET: undefined,
             REDIRECT_URL: undefined,
+            VAPID_PRIVATE_KEY: undefined,
+            VAPID_PUBLIC_KEY: undefined,
             MONGO_DB_ENDPOINT: undefined,
             DB_NAME: undefined,
             REDIS_ENDPOINT: undefined,
