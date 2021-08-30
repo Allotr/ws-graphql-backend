@@ -1,6 +1,7 @@
 export interface EnvObject extends Record<string,string> {
     GOOGLE_CLIENT_ID: string,
     GOOGLE_CLIENT_SECRET: string,
+    GOOGLE_CALLBACK_URL: string,
     SESSION_SECRET: string,
     REDIRECT_URL: string,
     VAPID_PRIVATE_KEY: string,

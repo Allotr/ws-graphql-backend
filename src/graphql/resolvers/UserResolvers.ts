@@ -2,6 +2,7 @@
 import { Resolvers, ResultDbObject, UserDbObject } from "allotr-graphql-schema-types";
 import { MongoDBSingleton } from "../../utils/mongodb-singleton";
 import { RedisSingleton } from "../../utils/redis-singleton";
+import { SortDirection } from "mongodb"
 
 export const UserResolvers: Resolvers = {
   Query: {
@@ -20,7 +21,8 @@ export const UserResolvers: Resolvers = {
     currentUser: (parent, args, context) => context.user,
     searchUsers: async (parent, args, context) => {
       const db = await MongoDBSingleton.getInstance().db;
-      const query = !args.query ? {}: {
+
+      const query = !args.query ? {} : {
         $text: { $search: args.query ?? "" }
       };
 
@@ -30,9 +32,13 @@ export const UserResolvers: Resolvers = {
         }
       }
 
-      const usersFound = await db.collection<UserDbObject>("users").find(query, options).toArray();
+      const sort = {
+        name: 1 as SortDirection
+      }
 
-      const userData = usersFound.map(({ _id, username = "", name ="", surname ="" }) => ({
+      const usersFound = await db.collection<UserDbObject>("users").find(query, options).sort(sort).toArray();
+
+      const userData = usersFound.map(({ _id, username = "", name = "", surname = "" }) => ({
         id: _id?.toHexString(),
         username,
         name,

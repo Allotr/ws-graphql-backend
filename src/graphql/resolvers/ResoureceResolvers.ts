@@ -2,7 +2,7 @@
 import { Resolvers, OperationResult, ResourceDbObject, UserDbObject, LocalRole, TicketStatusCode, ErrorCode, User, ResourceCard, Ticket } from "allotr-graphql-schema-types";
 import { MongoDBSingleton } from "../../utils/mongodb-singleton";
 import { RedisSingleton } from "../../utils/redis-singleton";
-import { ObjectId } from "mongodb"
+import { ObjectId, SortDirection } from "mongodb"
 import { compareDates, customTryCatch } from "../../utils/data-util";
 import { CustomTryCatch } from "../../types/custom-try-catch";
 
@@ -32,7 +32,11 @@ export const ResourceResolvers: Resolvers = {
                 }
             }
 
-            const myCurrentTicket = await db.collection<ResourceDbObject>("resources").find(query, options).toArray();
+            const sort = {
+                lastModificationDate: -1 as SortDirection
+            }
+
+            const myCurrentTicket = await db.collection<ResourceDbObject>("resources").find(query, options).sort(sort).toArray();
 
             const resourceList = myCurrentTicket
                 .map(({ _id, creationDate, createdBy, lastModificationDate, maxActiveTickets, name, tickets, description, activeUserCount }) => {
@@ -65,9 +69,15 @@ export const ResourceResolvers: Resolvers = {
             const db = await MongoDBSingleton.getInstance().db;
 
             // Check if user has entered himself as admin, it's important to do so
-            if (userList.findIndex(user => new ObjectId(user.id).equals(context.user._id) && user.role === LocalRole.ResourceAdmin) === -1) {
+            const myUserIndex = userList.findIndex(user => new ObjectId(user.id).equals(context.user._id));
+            if (myUserIndex === -1) {
                 userList.push({ id: new ObjectId(context.user._id).toHexString(), role: LocalRole.ResourceAdmin });
             }
+
+            // Force the role of my user to be admin when creating
+            userList[myUserIndex] = { id: new ObjectId(context.user._id).toHexString(), role: LocalRole.ResourceAdmin }
+
+
             const projection = { projection: { username: 1 } };
             const userNameList = userList
                 .map<Promise<[string, CustomTryCatch<UserDbObject | null>]>>(async ({ id }) =>
