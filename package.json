@@ -30,7 +30,7 @@
     "@types/ioredis": "^4.26.7",
     "@types/passport": "^1.0.7",
     "@types/passport-google-oauth20": "^2.0.9",
-    "allotr-graphql-schema-types": "0.0.9",
+    "allotr-graphql-schema-types": "0.0.10",
     "connect-mongo": "^4.5.0",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
