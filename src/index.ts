@@ -6,7 +6,11 @@ import { execute, subscribe } from 'graphql';
 import schema from "./graphql/schemasMap";
 import { EnvLoader } from "./utils/env-loader";
 import { MongoDBSingleton } from "./utils/mongodb-singleton";
-import { initializeGooglePassport, isLoggedIn } from "./auth/google-passport";
+import { initializeGooglePassport, isLoggedIn, passportMiddleware, passportSessionMiddleware, sessionMiddleware } from "./auth/google-passport";
+import { createOnConnect } from "graphql-passport";
+import { RedisSingleton } from "./utils/redis-singleton";
+import { ObjectId } from "mongodb";
+import { initializeWebPush } from "./notifications/web-push";
 
 // This NEEDS to be executed first
 require('dotenv').config();
@@ -17,6 +21,7 @@ const app = express();
 
 
 initializeGooglePassport(app);
+initializeWebPush(app);
 
 const { IS_HTTPS, HTTPS_PORT, WS_PATH } = EnvLoader.getInstance().loadedVariables;
 
@@ -26,16 +31,34 @@ const isHTTPS = (IS_HTTPS === 'true');
 // Initialize database connection
 MongoDBSingleton.getInstance()
 
-
 // GraphQL initialization
-app.use("/graphql", isLoggedIn, graphqlHTTP(req => ({ schema, graphiql: true, context: req })));
+app.use("/graphql", isLoggedIn, graphqlHTTP(req => ({
+    schema,
+    graphiql: true,
+    context: req
+})));
 
 
 const server = app.listen(HTTPS_PORT, () => {
     console.log(`GraphQL server running using ${Boolean(isHTTPS) ? "HTTPS" : "HTTP"} on port ${HTTPS_PORT}`);
 
     const wsServer = new ws.Server({ server, path: WS_PATH });
-    useServer({ schema, execute, subscribe }, wsServer);
+    useServer({
+        schema,
+        execute,
+        subscribe,
+        context: async (ctx) => {
+            // Send user auth as context
+            const { req } = await (createOnConnect([
+                sessionMiddleware,
+                passportMiddleware,
+                passportSessionMiddleware
+            ])(ctx.connectionParams ?? {}, ctx.extra.socket as any));
+            return req;
+        }, // or static context by supplying the value direcly
+        onConnect: (ctx) => {
+            // Save the upgradeReq inside the Web Socket
+            (ctx.extra.socket as any).upgradeReq = ctx.extra.request;
+        }
+    }, wsServer);
 });
-
-

@@ -1,24 +1,34 @@
 
-import { Resolvers, OperationResult, ResourceDbObject, UserDbObject, LocalRole, TicketStatusCode, ErrorCode, User, ResourceCard, Ticket } from "allotr-graphql-schema-types";
+import { Resolvers, OperationResult, ResourceDbObject, UserDbObject, LocalRole, TicketStatusCode, ErrorCode, User, ResourceCard, Ticket, RequestSource, ResourceManagementResult } from "allotr-graphql-schema-types";
 import { MongoDBSingleton } from "../../utils/mongodb-singleton";
 import { RedisSingleton } from "../../utils/redis-singleton";
-import { ObjectId, SortDirection } from "mongodb"
-import { compareDates, customTryCatch } from "../../utils/data-util";
+import { ObjectId, ReadPreference, WriteConcern, ReadConcern, TransactionOptions, ClientSession, Db } from "mongodb"
+import { compareDates, customTryCatch, generateChannelId, getLastQueuePosition, getLastStatus } from "../../utils/data-util";
 import { CustomTryCatch } from "../../types/custom-try-catch";
+import { withFilter } from 'graphql-subscriptions';
+import { RESOURCE_CREATED, RESOURCE_READY_TO_PICK } from "../../consts/connection-tokens";
+import { canRequestStatusChange } from "../../guards/guards";
+import { RESOURCES, USERS } from "../../consts/collections";
+import { enqueue, forwardQueue, generateOutputByResource, getResource, notifyFirstInQueue, pushNewStatus } from "../../utils/resolver-utils";
+import { EnvLoader } from "../../utils/env-loader";
+
+
+
+
 
 export const ResourceResolvers: Resolvers = {
     Query: {
         myResources: async (parent, args, context) => {
+            // console.log("CONTEXT HTTPS", context);
             const db = await MongoDBSingleton.getInstance().db;
 
-            const query = {
+
+            const myCurrentTicket = await db.collection<ResourceDbObject>(RESOURCES).find({
                 "tickets.user._id": context.user._id,
                 "tickets.statuses.statusCode": {
                     $ne: TicketStatusCode.Revoked
                 }
-            };
-
-            const options = {
+            }, {
                 projection: {
                     "tickets.$": 1,
                     name: 1,
@@ -30,17 +40,14 @@ export const ResourceResolvers: Resolvers = {
                     creationDate: 1,
                     activeUserCount: 1
                 }
-            }
-
-            const sort = {
-                lastModificationDate: -1 as SortDirection
-            }
-
-            const myCurrentTicket = await db.collection<ResourceDbObject>("resources").find(query, options).sort(sort).toArray();
+            }).sort({
+                lastModificationDate: -1
+            }).toArray();
 
             const resourceList = myCurrentTicket
                 .map(({ _id, creationDate, createdBy, lastModificationDate, maxActiveTickets, name, tickets, description, activeUserCount }) => {
-                    const lastStatus = tickets?.[0]?.statuses.reduce((latest, current) => compareDates(current.timestamp, latest.timestamp) > 0 ? current : latest);
+                    const myTicket = tickets?.[0];
+                    const { statusCode, timestamp: lastStatusTimestamp, queuePosition } = getLastStatus(myTicket);
                     return {
                         activeUserCount,
                         creationDate,
@@ -48,11 +55,12 @@ export const ResourceResolvers: Resolvers = {
                         lastModificationDate,
                         maxActiveTickets,
                         name,
+                        queuePosition,
                         description,
-                        lastStatusTimestamp: lastStatus.timestamp,
-                        role: tickets?.[0].user?.role as LocalRole,
-                        statusCode: lastStatus.statusCode as TicketStatusCode,
-                        ticketId: tickets?.[0]._id?.toHexString(),
+                        lastStatusTimestamp,
+                        statusCode: statusCode as TicketStatusCode,
+                        role: myTicket.user?.role as LocalRole,
+                        ticketId: myTicket._id?.toHexString(),
                         resourceId: _id?.toHexString() ?? ""
                     }
 
@@ -78,12 +86,11 @@ export const ResourceResolvers: Resolvers = {
             userList[myUserIndex] = { id: new ObjectId(context.user._id).toHexString(), role: LocalRole.ResourceAdmin }
 
 
-            const projection = { projection: { username: 1 } };
             const userNameList = userList
-                .map<Promise<[string, CustomTryCatch<UserDbObject | null>]>>(async ({ id }) =>
+                .map<Promise<[string, CustomTryCatch<UserDbObject | null | undefined>]>>(async ({ id }) =>
                     [
                         id,
-                        await customTryCatch(db.collection<UserDbObject>('users').findOne({ _id: new ObjectId(id) }, projection))
+                        await customTryCatch(db.collection<UserDbObject>(USERS).findOne({ _id: new ObjectId(id) }, { projection: { username: 1 } }))
                     ]);
             const { error, result: userListResult } = await customTryCatch(Promise.all(userNameList));
 
@@ -98,7 +105,7 @@ export const ResourceResolvers: Resolvers = {
             const userNameMap = Object.fromEntries(userListResult.map(([id, { result: user }]) => [id, user?.username ?? ""]));
 
             // Find all results
-            const result = await db.collection<ResourceDbObject>('resources').insertOne({
+            const newResource = {
                 creationDate: timestamp,
                 lastModificationDate: timestamp,
                 maxActiveTickets,
@@ -108,19 +115,271 @@ export const ResourceResolvers: Resolvers = {
                     _id: new ObjectId(),
                     creationDate: timestamp,
                     statuses: [
-                        { statusCode: TicketStatusCode.Initialized, timestamp }
+                        { statusCode: TicketStatusCode.Initialized, timestamp, queuePosition: null }
                     ],
                     user: { role, _id: new ObjectId(id), username: userNameMap?.[id] },
                 })),
                 createdBy: { _id: context.user._id, username: context.user.username },
                 activeUserCount: 0
-            })
+            }
+            const result = await db.collection<ResourceDbObject>(RESOURCES).insertOne(newResource);
 
             if (result == null) {
                 return { status: OperationResult.Error, newObjectId: null };
             }
 
             return { status: OperationResult.Ok, newObjectId: result.insertedId.toHexString() };
+        },
+        requestResource: async (parent, args, context) => {
+            const { requestFrom, resourceId } = args
+            const timestamp = new Date();
+
+            const client = await MongoDBSingleton.getInstance().connection;
+
+            let result: ResourceManagementResult = { status: OperationResult.Ok };
+
+            // Step 1: Start a Client Session
+            const session = client.startSession();
+            // Step 2: Optional. Define options to use for the transaction
+            const transactionOptions: TransactionOptions = {
+                readPreference: new ReadPreference(ReadPreference.PRIMARY),
+                readConcern: new ReadConcern("local"),
+                writeConcern: new WriteConcern("majority")
+            };
+            // Step 3: Use withTransaction to start a transaction, execute the callback, and commit (or abort on error)
+            // Note: The callback for withTransaction MUST be async and/or return a Promise.
+            try {
+                await session.withTransaction(async () => {
+                    // Check if we can request the resource right now
+                    console.log("ENTRA");
+                    const {
+                        canRequest,
+                        ticketId,
+                        activeUserCount = 0,
+                        maxActiveTickets = 0
+                    } = await canRequestStatusChange(context.user._id, resourceId, TicketStatusCode.Requesting, session);
+                    console.log("CAN REQUEST", canRequest);
+                    if (!canRequest) {
+                        result = { status: OperationResult.Error }
+                        return;
+                    }
+                    // Change status to requesting
+                    await pushNewStatus(resourceId, ticketId, {
+                        statusCode: TicketStatusCode.Requesting,
+                        timestamp
+                    }, 1, session);
+                    console.log("Ha hecho el push");
+
+                    // Here comes the logic to enter the queue or set the status as active
+                    if (activeUserCount < maxActiveTickets) {
+                        await pushNewStatus(resourceId, ticketId, { statusCode: TicketStatusCode.Active, timestamp }, 2, session);
+                        console.log("Activao");
+                    } else {
+                        await enqueue(resourceId, ticketId, timestamp, 2, session);
+                        console.log("Encolao");
+                    }
+
+
+                }, transactionOptions);
+            } finally {
+                await session.endSession();
+            }
+            if (result.status === OperationResult.Error) {
+                return result;
+            }
+
+
+            // Once the session is ended, le't get and return our new data
+
+            const resource = await getResource(resourceId)
+            if (resource == null) {
+                return { status: OperationResult.Error }
+            }
+
+            // Status changed, now let's return the new resource
+            return generateOutputByResource[requestFrom](resource, context.user._id, resourceId);
+        },
+        acquireResource: async (parent, args, context) => {
+            const { resourceId } = args
+            const timestamp = new Date();
+
+            const client = await MongoDBSingleton.getInstance().connection;
+
+            let result: ResourceManagementResult = { status: OperationResult.Ok };
+
+            // Step 1: Start a Client Session
+            const session = client.startSession();
+            // Step 2: Optional. Define options to use for the transaction
+            const transactionOptions: TransactionOptions = {
+                readPreference: new ReadPreference(ReadPreference.PRIMARY),
+                readConcern: new ReadConcern("local"),
+                writeConcern: new WriteConcern("majority")
+            };
+            // Step 3: Use withTransaction to start a transaction, execute the callback, and commit (or abort on error)
+            // Note: The callback for withTransaction MUST be async and/or return a Promise.
+            try {
+                await session.withTransaction(async () => {
+                    // Check if we can request the resource right now
+                    const { canRequest, ticketId } = await canRequestStatusChange(context.user._id, resourceId, TicketStatusCode.Active, session);
+                    console.log("CanRequest", canRequest);
+                    if (!canRequest) {
+                        result = { status: OperationResult.Error }
+                        return;
+                    }
+                    // Change status to active
+                    await pushNewStatus(resourceId, ticketId, { statusCode: TicketStatusCode.Active, timestamp }, 1, session);
+                    console.log("Hace el push a active");
+
+                }, transactionOptions);
+            } finally {
+                await session.endSession();
+            }
+            if (result.status === OperationResult.Error) {
+                return result;
+            }
+
+            // Once the session is ended, let's get and return our new data
+
+            const resource = await getResource(resourceId)
+            if (resource == null) {
+                return { status: OperationResult.Error }
+            }
+
+            // Status changed, now let's return the new resource
+            return generateOutputByResource["HOME"](resource, context.user._id, resourceId);
+        },
+        cancelResourceAcquire: async (parent, args, context) => {
+            const { resourceId } = args
+            const timestamp = new Date();
+
+            const client = await MongoDBSingleton.getInstance().connection;
+
+            let result: ResourceManagementResult = { status: OperationResult.Ok };
+
+            // Step 1: Start a Client Session
+            const session = client.startSession();
+            // Step 2: Optional. Define options to use for the transaction
+            const transactionOptions: TransactionOptions = {
+                readPreference: new ReadPreference(ReadPreference.PRIMARY),
+                readConcern: new ReadConcern("local"),
+                writeConcern: new WriteConcern("majority")
+            };
+            // Step 3: Use withTransaction to start a transaction, execute the callback, and commit (or abort on error)
+            // Note: The callback for withTransaction MUST be async and/or return a Promise.
+            try {
+                await session.withTransaction(async () => {
+                    // Check if we can request the resource right now
+                    const { canRequest, ticketId } = await canRequestStatusChange(context.user._id, resourceId, TicketStatusCode.Inactive, session);
+                    if (!canRequest) {
+                        result = { status: OperationResult.Error }
+                        return;
+                    }
+                    // Change status to active
+                    await pushNewStatus(resourceId, ticketId, { statusCode: TicketStatusCode.Inactive, timestamp }, 1, session);
+
+                }, transactionOptions);
+            } finally {
+                await session.endSession();
+            }
+            if (result.status === OperationResult.Error) {
+                return result;
+            }
+
+            // Once the session is ended, let's get and return our new data
+
+            const resource = await getResource(resourceId)
+            if (resource == null) {
+                return { status: OperationResult.Error }
+            }
+
+            // Status changed, now let's return the new resource
+            return generateOutputByResource["HOME"](resource, context.user._id, resourceId);
+        },
+        releaseResource: async (parent, args, context) => {
+            const { requestFrom, resourceId } = args
+            const timestamp = new Date();
+
+            const client = await MongoDBSingleton.getInstance().connection;
+
+            let result: ResourceManagementResult = { status: OperationResult.Ok };
+
+            // Step 1: Start a Client Session
+            const session = client.startSession();
+            // Step 2: Optional. Define options to use for the transaction
+            const transactionOptions: TransactionOptions = {
+                readPreference: new ReadPreference(ReadPreference.PRIMARY),
+                readConcern: new ReadConcern("local"),
+                writeConcern: new WriteConcern("majority")
+            };
+            // Step 3: Use withTransaction to start a transaction, execute the callback, and commit (or abort on error)
+            // Note: The callback for withTransaction MUST be async and/or return a Promise.
+            try {
+                await session.withTransaction(async () => {
+                    // Check if we can request the resource right now
+                    const { canRequest, ticketId } = await canRequestStatusChange(context.user._id, resourceId, TicketStatusCode.Inactive, session);
+                    if (!canRequest) {
+                        result = { status: OperationResult.Error }
+                        return;
+                    }
+                    // Change status to inactive
+                    await pushNewStatus(resourceId, ticketId, { statusCode: TicketStatusCode.Inactive, timestamp }, 1, session);
+
+
+                    // Move people forward in the queue
+                    await forwardQueue(resourceId, timestamp, 2, session)
+                    await notifyFirstInQueue(resourceId, timestamp, 3, session);
+                }, transactionOptions);
+            } finally {
+                await session.endSession();
+            }
+            if (result.status === OperationResult.Error) {
+                return result;
+            }
+
+
+            // Here comes the notification code
+
+            // TODO: Implement user notification
+
+            // Once the session is ended, let's get and return our new data
+
+            const resource = await getResource(resourceId)
+            if (resource == null) {
+                return { status: OperationResult.Error }
+            }
+
+            // Status changed, now let's return the new resource
+            return generateOutputByResource[requestFrom](resource, context.user._id, resourceId);
+        }
+    },
+    Subscription: {
+        newResourceReady: {
+            subscribe: withFilter(
+                (parent, args, context) => {
+                    if (!context.user) {
+                        console.log("PETA1")
+                        throw new Error('You need to be logged in');
+                    }
+                    // context.user._id
+                    return RedisSingleton.getInstance().pubsub.asyncIterator(generateChannelId(RESOURCE_READY_TO_PICK))
+                }, (payload, variables, context) => {
+                    console.log("newResourceReady", payload);
+                    return true;
+                })
+        },
+        newResourceCreated: {
+            subscribe: withFilter(
+                (parent, args, context) => {
+                    if (!context.user) {
+                        console.log("PETA2")
+                        throw new Error('You need to be logged in');
+                    }
+                    // context.user._id
+                    return RedisSingleton.getInstance().pubsub.asyncIterator(RESOURCE_CREATED)
+                }, (payload, variables, context) => {
+                    console.log("newResourceCreated", payload);
+                    return true;
+                })
         }
     }
 }
