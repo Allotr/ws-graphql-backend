@@ -17,15 +17,11 @@ export const NotificationResolvers: Resolvers = {
     Query: {
         myNotificationData: async (parent, args, context) => {
             // Implement something real here, please
-            console.log("Entra!");
-
             const db = await MongoDBSingleton.getInstance().db;
 
             const userNotifications = await db.collection<ResourceNotificationDbObject>(NOTIFICATIONS).find({
                 "user._id": context.user._id
             }).toArray();
-
-            console.log("USER NOTIFICATIONS", userNotifications)
 
             return userNotifications.map<ResourceNotification>(({ ticketStatus, user, _id, descriptionRef, resource, timestamp, titleRef }) => ({
                 ticketStatus: ticketStatus as TicketStatusCode,
@@ -48,13 +44,11 @@ export const NotificationResolvers: Resolvers = {
             subscribe: withFilter(
                 (parent, args, context) => {
                     if (!context.user) {
-                        console.log("Peta notificación")
                         throw new Error('You need to be logged in');
                     }
                     // context.user._id
                     return RedisSingleton.getInstance().pubsub.asyncIterator(generateChannelId(RESOURCE_READY_TO_PICK, context.user._id))
                 }, (payload, variables, context) => {
-                    console.log("SUSCRIPCIOÖN BUENARDA; EL VALORAZO BUENO", payload);
                     return true;
                 })
         }

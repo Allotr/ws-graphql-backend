@@ -20,7 +20,6 @@ async function canRequestStatusChange(userId: string | ObjectId, resourceId: str
     const userTicket = await getUserTicket(userId, resourceId, myDb);
     const ticket = userTicket?.tickets?.[0];
     const { statusCode, queuePosition } = getLastStatus(ticket);
-    console.log("CAN REQUEST INTERNAL", ticket, statusCode, queuePosition, targetStatus, userTicket)
     return {
         canRequest: userTicket != null && VALID_STATUES_MAP[statusCode as TicketStatusCode].includes(targetStatus),
         ticketId: ticket?._id,

@@ -20,7 +20,6 @@ import { RedisPubSub } from "graphql-redis-subscriptions";
 export const ResourceResolvers: Resolvers = {
     Query: {
         myResources: async (parent, args, context) => {
-            // console.log("CONTEXT HTTPS", context);
             const db = await MongoDBSingleton.getInstance().db;
 
 
@@ -152,7 +151,6 @@ export const ResourceResolvers: Resolvers = {
             try {
                 await session.withTransaction(async () => {
                     // Check if we can request the resource right now
-                    console.log("ENTRA");
                     const {
                         canRequest,
                         ticketId,
@@ -161,7 +159,6 @@ export const ResourceResolvers: Resolvers = {
                         previousStatusCode,
                         lastQueuePosition
                     } = await canRequestStatusChange(context.user._id, resourceId, TicketStatusCode.Requesting, session);
-                    console.log("CAN REQUEST", canRequest);
 
                     if (!canRequest) {
                         result = { status: OperationResult.Error }
@@ -173,7 +170,6 @@ export const ResourceResolvers: Resolvers = {
                         statusCode: TicketStatusCode.Requesting,
                         timestamp
                     }, 1, session, previousStatusCode);
-                    console.log("Ha hecho el push");
 
 
 
@@ -181,14 +177,12 @@ export const ResourceResolvers: Resolvers = {
 
                     // We need to make sure there is nobody pending to respond.
                     const awaitingTicket = await getAwaitingTicket(resourceId)
-                    console.log("MY AWAITING TICKET", awaitingTicket, (awaitingTicket?.tickets?.[0] as any)?.lastStatus);
+
 
                     if (activeUserCount < maxActiveTickets && (lastQueuePosition === 0)) {
                         await pushNewStatus(resourceId, ticketId, { statusCode: TicketStatusCode.Active, timestamp }, 2, session, TicketStatusCode.Requesting);
-                        console.log("Activao");
                     } else {
                         await enqueue(resourceId, ticketId, timestamp, 2, session);
-                        console.log("Encolao");
                     }
 
 
@@ -204,7 +198,6 @@ export const ResourceResolvers: Resolvers = {
             // Once the session is ended, le't get and return our new data
 
             const resource = await getResource(resourceId)
-            console.log("NEW RESOURCE", resource);
             if (resource == null) {
                 return { status: OperationResult.Error }
             }
@@ -234,7 +227,6 @@ export const ResourceResolvers: Resolvers = {
                 await session.withTransaction(async () => {
                     // Check if we can request the resource right now
                     const { canRequest, ticketId, previousStatusCode } = await canRequestStatusChange(context.user._id, resourceId, TicketStatusCode.Active, session);
-                    console.log("CanRequest", canRequest);
                     if (!canRequest) {
                         result = { status: OperationResult.Error }
                         throw result;
@@ -242,7 +234,6 @@ export const ResourceResolvers: Resolvers = {
                     // Change status to active
                     await removeAwaitingConfirmation(resourceId, timestamp, 1, session)
                     await pushNewStatus(resourceId, ticketId, { statusCode: TicketStatusCode.Active, timestamp }, 2, session, previousStatusCode);
-                    console.log("Hace el push a active");
                 }, transactionOptions);
             } finally {
                 await session.endSession();
@@ -283,7 +274,6 @@ export const ResourceResolvers: Resolvers = {
                 await session.withTransaction(async () => {
                     // Check if we can request the resource right now
                     const { canRequest, ticketId, previousStatusCode } = await canRequestStatusChange(context.user._id, resourceId, TicketStatusCode.Inactive, session);
-                    console.log("CAN REQUEST", canRequest)
                     if (!canRequest) {
                         result = { status: OperationResult.Error }
                         throw result;
@@ -295,8 +285,6 @@ export const ResourceResolvers: Resolvers = {
                 await session.endSession();
             }
 
-            console.log("CIERRA SESION 1");
-
             // // Step 1: Start a Client Session
             const session2 = client.startSession();
 
@@ -304,7 +292,6 @@ export const ResourceResolvers: Resolvers = {
                 await session2.withTransaction(async () => {
                     // Check if we can request the resource right now
                     const { canRequest, ticketId, previousStatusCode } = await canRequestStatusChange(context.user._id, resourceId, TicketStatusCode.Queued, session2);
-                    console.log("CAN REQUEST", canRequest)
                     if (!canRequest) {
                         result = { status: OperationResult.Error }
                         throw result;
@@ -400,13 +387,11 @@ export const ResourceResolvers: Resolvers = {
             subscribe: withFilter(
                 (parent, args, context) => {
                     if (!context.user) {
-                        console.log("PETA1")
                         throw new Error('You need to be logged in');
                     }
                     // context.user._id
                     return RedisSingleton.getInstance().pubsub.asyncIterator(generateChannelId(RESOURCE_READY_TO_PICK))
                 }, (payload, variables, context) => {
-                    console.log("newResourceReady", payload);
                     return true;
                 })
         },
@@ -414,13 +399,11 @@ export const ResourceResolvers: Resolvers = {
             subscribe: withFilter(
                 (parent, args, context) => {
                     if (!context.user) {
-                        console.log("PETA2")
                         throw new Error('You need to be logged in');
                     }
                     // context.user._id
                     return RedisSingleton.getInstance().pubsub.asyncIterator(RESOURCE_CREATED)
                 }, (payload, variables, context) => {
-                    console.log("newResourceCreated", payload);
                     return true;
                 })
         }

@@ -46,11 +46,6 @@ function initializeWebPush(app: express.Express) {
             arrayFilters: [],
         })
 
-        console.log("req", req.body, _id);
-
-        console.log('Subscription registered ' + subscription.endpoint);
-
-
         res.sendStatus(201);
     });
 
@@ -69,10 +64,6 @@ function initializeWebPush(app: express.Express) {
         }, {
             arrayFilters: [],
         })
-
-        console.log("req", req.body, _id);
-
-        console.log('Subscription unregistered ' + subscription.endpoint);
         res.sendStatus(201);
     });
 
@@ -86,10 +77,10 @@ function initializeWebPush(app: express.Express) {
 async function sendNotification(subscription: webPush.PushSubscription, payload?: string | Buffer | null | undefined) {
     try {
         await webPush.sendNotification(subscription, payload)
-        console.log('Push Application Server - Notification sent to ' + subscription.endpoint);
+        // console.log('Push Application Server - Notification sent to ' + subscription.endpoint);
 
     } catch (e) {
-        console.log("Error pushing mesage to user", e);
+        // console.log("Error pushing mesage to user", e);
     }
 }
 

@@ -211,7 +211,6 @@ async function removeAwaitingConfirmation(
     const timestamp = addMSToTime(currentDate, executionPosition)
     // Delete notification
     const userId = (await getAwaitingTicket(resourceId))?.tickets?.[0].user?._id;
-    console.log({ userId, resourceId });
     const result2 = await db.collection<ResourceNotificationDbObject>(NOTIFICATIONS).deleteOne(
         {
             "resource._id": new ObjectId(resourceId),
@@ -235,8 +234,6 @@ async function removeAwaitingConfirmation(
             },
         ],
     })
-
-    console.log("RESULT", result, result2)
 }
 
 async function notifyFirstInQueue(
@@ -302,17 +299,14 @@ const generateOutputByResource: Record<RequestSource, (resource: ResourceDbObjec
 async function pushNotification(resourceName: string, resourceId: ObjectId | null | undefined,
     createdByUserId: ObjectId | null | undefined, createdByUsername: string | undefined, timestamp: Date) {
     const db = await MongoDBSingleton.getInstance().db;
-    console.log("ANTES DE PEDIR DATOS Y ESO", resourceId?.toHexString() ?? "");
 
     // let's notify all the WebPush links associated with the user
     const resource = await getAwaitingTicket(resourceId?.toHexString() ?? "");
     const ticket = resource?.tickets[0];
     const user = ticket?.user;
 
-    console.log("ENTRA AL PUSH!!", resource, ticket, user, resourceId);
     // Now we insert the record
     if (user?._id == null) {
-        console.log("NANAI");
         return;
     }
 
@@ -330,8 +324,6 @@ async function pushNotification(resourceName: string, resourceId: ObjectId | nul
     // Finally, we obtain the destined user subscriptions
     const fullReceivingUser = await getUser(user?._id);
 
-    console.log("FULL RECEIVING USER", fullReceivingUser);
-
     if (fullReceivingUser == null) {
         return;
     }
@@ -340,7 +332,6 @@ async function pushNotification(resourceName: string, resourceId: ObjectId | nul
         if (subscription == null) {
             return;
         }
-        console.log("PUSHEA!!!");
         sendNotification({ endpoint: subscription.endpoint ?? "", keys: { auth: subscription.keys?.auth ?? "", p256dh: subscription.keys?.p256dh ?? "" } })
     })
 
