@@ -24,26 +24,5 @@ function generateChannelId(communicationToken: string, userId?: ObjectId | null)
     return communicationToken + "_" + (userId ? new ObjectId(userId).toHexString() : "")
 }
 
-function addMSToTime(date: Date, extraMS: number): Date {
-    const newDate = date;
-    newDate.setMilliseconds(newDate.getMilliseconds() + extraMS)
-    return newDate;
-}
 
-function getLastStatus(myTicket?: TicketDbObject): TicketStatusDbObject {
-    return myTicket?.statuses.reduce((latest, current) => compareDates(current.timestamp, latest.timestamp) > 0 ? current : latest) ?? {
-        statusCode: TicketStatusCode.Initialized,
-        timestamp: new Date(),
-        queuePosition: null
-    };
-}
-
-function getLastQueuePosition(tickets: TicketDbObject[] | undefined = []): number {
-    return tickets.reduce<number>((lastPosition, ticket) => {
-        const { queuePosition } = getLastStatus(ticket);
-        const processedQueuePosition = queuePosition ?? 0;
-        return lastPosition > processedQueuePosition ? lastPosition : processedQueuePosition;
-    }, 0) ?? 0;
-}
-
-export { customTryCatch, compareDates, generateChannelId, getLastStatus, getLastQueuePosition, addMSToTime }
+export { customTryCatch, compareDates, generateChannelId }

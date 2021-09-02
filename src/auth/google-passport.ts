@@ -102,24 +102,5 @@ function initializeGooglePassport(app: express.Express) {
         }
     });
 
-
-    app.get("/", (req, res) => res.json({ message: "You are not logged in" }));
-
-    app.get("/failed", (req, res) => res.send("Failed"));
-
-    // Google Oauth
-    app.get("/auth/google", passport.authenticate("google", {
-        scope: ["profile", "email"]
-    }));
-
-    app.get('/auth/google/redirect',
-        passport.authenticate('google', {
-            failureRedirect: '/failed', successRedirect: REDIRECT_URL
-        }));
-
-    app.get("/auth/google/logout", (req, res) => {
-        req.logout();
-        res.redirect(REDIRECT_URL);
-    });
 }
 export { initializeGooglePassport, isLoggedIn, sessionMiddleware, passportMiddleware, passportSessionMiddleware }
