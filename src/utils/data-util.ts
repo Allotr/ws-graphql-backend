@@ -20,7 +20,7 @@ function compareDates(dateA: Date, dateB: Date) {
     return 0;
 }
 
-function generateChannelId(communicationToken: string, userId?: ObjectId): string {
+function generateChannelId(communicationToken: string, userId?: ObjectId | null): string {
     return communicationToken + "_" + (userId ? new ObjectId(userId).toHexString() : "")
 }
 

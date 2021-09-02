@@ -80,7 +80,7 @@ function initializeGooglePassport(app: express.Express) {
                         surname: profile.name?.familyName,
                         userPreferences: {},
                         oauthIds: { googleId: profile.id },
-                        pushURLs: []
+                        webPushSubscriptions: []
                     };
                     await db.collection<UserDbObject>(USERS).insertOne(userToCreate)
                     await db.collection<UserDbObject>(USERS).createIndex({ username: "text", name: "text", surname: "text" })

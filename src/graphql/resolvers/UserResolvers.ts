@@ -6,6 +6,7 @@ import { ObjectId } from "mongodb"
 import { generateChannelId } from "../../utils/data-util";
 import { RESOURCE_READY_TO_PICK } from "../../consts/connection-tokens";
 import { USERS } from "../../consts/collections";
+import { sendNotification } from "../../notifications/web-push";
 
 export const UserResolvers: Resolvers = {
   Query: {
@@ -37,6 +38,7 @@ export const UserResolvers: Resolvers = {
         }
       });
       // }
+
 
       return context.user;
     },

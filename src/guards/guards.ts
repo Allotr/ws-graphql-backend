@@ -1,9 +1,9 @@
 import { Resolvers, OperationResult, ResourceDbObject, UserDbObject, LocalRole, TicketStatusCode, ErrorCode, User, ResourceCard, Ticket } from "allotr-graphql-schema-types";
 import { MongoDBSingleton } from "../utils/mongodb-singleton";
 import { ObjectId, ClientSession, Db } from "mongodb";
-import { getLastStatus } from "../utils/data-util";
+import { getLastQueuePosition, getLastStatus } from "../utils/data-util";
 import { VALID_STATUES_MAP } from "../consts/valid-statuses-map";
-import { getUserTicket } from "../utils/resolver-utils";
+import { getUserTicket, getAwaitingTicket, getResource } from "../utils/resolver-utils";
 
 
 async function canRequestStatusChange(userId: string | ObjectId, resourceId: string, targetStatus: TicketStatusCode, session: ClientSession, myDb?: Db): Promise<{
@@ -11,18 +11,24 @@ async function canRequestStatusChange(userId: string | ObjectId, resourceId: str
     ticketId?: ObjectId | null,
     activeUserCount?: number,
     maxActiveTickets?: number,
-    queuePosition?: number | null
+    queuePosition?: number | null,
+    previousStatusCode?: TicketStatusCode,
+    lastQueuePosition: number
 }> {
-    const resource = await getUserTicket(userId, resourceId, myDb);
-    const ticket = resource?.tickets?.[0];
+    const resource = await getResource(resourceId);
+    const lastQueuePosition = getLastQueuePosition(resource?.tickets);
+    const userTicket = await getUserTicket(userId, resourceId, myDb);
+    const ticket = userTicket?.tickets?.[0];
     const { statusCode, queuePosition } = getLastStatus(ticket);
-console.log(resource, ticket?.statuses, statusCode, VALID_STATUES_MAP[statusCode as TicketStatusCode].includes(targetStatus) )
+    console.log("CAN REQUEST INTERNAL", ticket, statusCode, queuePosition, targetStatus, userTicket)
     return {
-        canRequest: resource != null && VALID_STATUES_MAP[statusCode as TicketStatusCode].includes(targetStatus),
+        canRequest: userTicket != null && VALID_STATUES_MAP[statusCode as TicketStatusCode].includes(targetStatus),
         ticketId: ticket?._id,
-        activeUserCount: resource?.activeUserCount,
-        maxActiveTickets: resource?.maxActiveTickets,
-        queuePosition
+        activeUserCount: userTicket?.activeUserCount,
+        maxActiveTickets: userTicket?.maxActiveTickets,
+        queuePosition,
+        previousStatusCode: statusCode as TicketStatusCode,
+        lastQueuePosition
     }
 
 }
