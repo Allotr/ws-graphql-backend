@@ -346,7 +346,20 @@ async function pushNotification(resourceName: string, resourceId: ObjectId | nul
 
     RedisSingleton.getInstance().pubsub.publish(generateChannelId(RESOURCE_READY_TO_PICK, user?._id), {
         myNotificationDataSub: [
-            notificationData
+           {
+                ticketStatus: notificationData.ticketStatus as TicketStatusCode,
+                user: { username: notificationData.user.username, id:notificationData.user._id.toHexString() },
+                descriptionRef: notificationData.descriptionRef,
+                id: notificationData._id?.toHexString(),
+                resource: {
+                    id: notificationData.resource?._id as any, name: notificationData.resource?.name ?? "", createdBy: {
+                        username: notificationData.resource?.createdBy?.username ?? "",
+                        id: notificationData.resource?.createdBy?._id as any
+                    }
+                },
+                timestamp: notificationData.timestamp,
+                titleRef: notificationData.titleRef
+            }
         ]
     })
 

@@ -240,7 +240,8 @@ export const ResourceResolvers: Resolvers = {
                         throw result;
                     }
                     // Change status to active
-                    await pushNewStatus(resourceId, ticketId, { statusCode: TicketStatusCode.Active, timestamp }, 1, session, previousStatusCode);
+                    await removeAwaitingConfirmation(resourceId, timestamp, 1, session)
+                    await pushNewStatus(resourceId, ticketId, { statusCode: TicketStatusCode.Active, timestamp }, 2, session, previousStatusCode);
                     console.log("Hace el push a active");
                 }, transactionOptions);
             } finally {

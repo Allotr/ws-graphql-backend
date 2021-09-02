@@ -25,12 +25,19 @@ export const NotificationResolvers: Resolvers = {
                 "user._id": context.user._id
             }).toArray();
 
+            console.log("USER NOTIFICATIONS", userNotifications)
+
             return userNotifications.map<ResourceNotification>(({ ticketStatus, user, _id, descriptionRef, resource, timestamp, titleRef }) => ({
                 ticketStatus: ticketStatus as TicketStatusCode,
-                user,
+                user: { username: user.username, id: user._id as any },
                 descriptionRef,
                 id: _id?.toHexString(),
-                resource,
+                resource: {
+                    id: resource?._id as any, name: resource?.name ?? "", createdBy: {
+                        username: resource?.createdBy?.username ?? "",
+                        id: resource?.createdBy?._id as any
+                    }
+                },
                 timestamp,
                 titleRef
             }));

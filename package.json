@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@graphql-codegen/typescript-mongodb": "^2.1.0",
-    "allotr-graphql-schema-types": "0.0.10",
+    "allotr-graphql-schema-types": "0.0.12",
     "@graphql-tools/schema": "^8.1.2",
     "@graphql-tools/utils": "^8.1.1",
     "@types/express-session": "^1.17.4",
