@@ -36,7 +36,7 @@ async function getUserTicket(userId: string | ObjectId, resourceId: string, myDb
     return userTikcet;
 }
 
-async function getResource(resourceId: string): Promise<ResourceDbObject | null> {
+async function getResource(resourceId: string): Promise<ResourceDbObject | null | undefined> {
     const db = await MongoDBSingleton.getInstance().db;
 
     const userTikcet = await db.collection<ResourceDbObject>(RESOURCES).findOne({
@@ -75,7 +75,7 @@ async function getAwaitingTicket(resourceId: string): Promise<ResourceDbObject |
 }
 
 
-async function getUser(userId?: ObjectId | null): Promise<UserDbObject | null> {
+async function getUser(userId?: ObjectId | null): Promise<UserDbObject | null | undefined> {
     const db = await MongoDBSingleton.getInstance().db;
     const userTikcet = await db.collection<UserDbObject>(USERS).findOne({
         _id: userId,
@@ -207,11 +207,9 @@ async function removeAwaitingConfirmation(
     executionPosition: number,
     session: ClientSession) {
     const db = await MongoDBSingleton.getInstance().db;
-    // Add 1ms to make sure the statuses are in order
-    const timestamp = addMSToTime(currentDate, executionPosition)
     // Delete notification
     const userId = (await getAwaitingTicket(resourceId))?.tickets?.[0].user?._id;
-    const result2 = await db.collection<ResourceNotificationDbObject>(NOTIFICATIONS).deleteOne(
+    await db.collection<ResourceNotificationDbObject>(NOTIFICATIONS).deleteOne(
         {
             "resource._id": new ObjectId(resourceId),
             "user._id": userId
@@ -323,7 +321,6 @@ async function pushNotification(resourceName: string, resourceId: ObjectId | nul
 
     // Finally, we obtain the destined user subscriptions
     const fullReceivingUser = await getUser(user?._id);
-
     if (fullReceivingUser == null) {
         return;
     }
