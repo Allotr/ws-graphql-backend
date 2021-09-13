@@ -41,16 +41,22 @@
     // "noPropertyAccessFromIndexSignature": true,  /* Require undeclared properties from index signatures to use element accesses. */
     /* Module Resolution Options */
     // "moduleResolution": "node",                  /* Specify module resolution strategy: 'node' (Node.js) or 'classic' (TypeScript pre-1.6). */
-    "baseUrl": "./",                             /* Base directory to resolve non-absolute module names. */
+    "baseUrl": ".",                             /* Base directory to resolve non-absolute module names. */
     "paths": {
       "resolver/*": [
-        "./src/graphql/resolver/*"
+        "src/graphql/resolver/*"
       ],
       "schemas/*": [
-        "./src/graphql/schemas/*"
+        "src/graphql/schemas/*"
       ],
       "graphql-root/*": [
-        "./src/graphql/*"
+        "src/graphql/*"
+      ],
+      "utils/*": [
+        "src/utils/*"
+      ],
+      "guards/*": [
+        "src/guards/*"
       ]
     },
     // "rootDirs": [],                              /* List of root folders whose combined content represents the structure of the project at runtime. */
