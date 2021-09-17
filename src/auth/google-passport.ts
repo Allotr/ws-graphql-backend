@@ -61,7 +61,7 @@ function initializeGooglePassport(app: express.Express) {
             },
             async (accessToken, refreshToken, profile, done) => {
                 // passport callback function
-                const db = await getMongoDBConnection().db;
+                const db = await (await getMongoDBConnection()).db;
                 const currentUser = await db.collection<UserDbObject>(USERS).findOne({ oauthIds: { googleId: profile.id } })
                 //check if user already exists in our db with the given profile ID
                 if (currentUser) {
@@ -93,7 +93,7 @@ function initializeGooglePassport(app: express.Express) {
 
     passport.deserializeUser<ObjectId>(async (id, done) => {
         try {
-            const db = await getMongoDBConnection().db;
+            const db = await(await getMongoDBConnection()).db;
             const idToSearch = new ObjectId(id);
             const user = await db.collection<UserDbObject>(USERS).findOne({ _id: idToSearch });
             done(null, user);
