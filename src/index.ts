@@ -6,23 +6,17 @@ import ws from "ws";
 import { useServer } from "graphql-ws/lib/use/ws"
 import { execute, subscribe } from 'graphql';
 import schema from "./graphql/schemasMap";
-import { EnvLoader } from "./utils/env-loader";
-import { MongoDBSingleton } from "./utils/mongodb-singleton";
+import { getLoadedEnvVariables } from "./utils/env-loader";
 import { initializeGooglePassport, passportMiddleware, passportSessionMiddleware, sessionMiddleware } from "./auth/google-passport";
 import { createOnConnect } from "graphql-passport";
+import { connectionMiddleware } from "./utils/connection-utils";
 
-
-// Initialize database connection
-MongoDBSingleton.getInstance()
 
 const app = express();
 
 initializeGooglePassport(app);
 
-const { HTTPS_PORT, WS_PATH } = EnvLoader.getInstance().loadedVariables;
-
-// Initialize database connection
-MongoDBSingleton.getInstance()
+const { HTTPS_PORT, WS_PATH } = getLoadedEnvVariables();
 
 
 const server = app.listen(HTTPS_PORT, () => {
@@ -36,6 +30,7 @@ const server = app.listen(HTTPS_PORT, () => {
         context: async (ctx) => {
             // Send user auth as context
             const { req } = await (createOnConnect([
+                connectionMiddleware,
                 sessionMiddleware,
                 passportMiddleware,
                 passportSessionMiddleware
