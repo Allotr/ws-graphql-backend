@@ -10,6 +10,7 @@ import { getLoadedEnvVariables } from "./utils/env-loader";
 import { initializeGooglePassport, passportMiddleware, passportSessionMiddleware, sessionMiddleware } from "./auth/google-passport";
 import { createOnConnect } from "graphql-passport";
 import { connectionMiddleware } from "./utils/connection-utils";
+import { graphqlHTTP } from "express-graphql";
 
 
 const app = express();
@@ -17,7 +18,7 @@ const app = express();
 initializeGooglePassport(app);
 
 const { HTTPS_PORT, WS_PATH } = getLoadedEnvVariables();
-
+app.use("/graphql", graphqlHTTP(req => ({ schema, graphiql: true, context: req })));
 
 const server = app.listen(HTTPS_PORT, () => {
     console.log(`GraphQL websocket server running using on port ${HTTPS_PORT}`);
