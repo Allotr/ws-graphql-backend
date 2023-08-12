@@ -1,7 +1,7 @@
 #!/bin/bash
 docker build -t allotr-ws-graphql-backend .
-docker tag allotr-ws-graphql-backend rafaelpernil/allotr-ws-graphql-backend:production
-docker push rafaelpernil/allotr-ws-graphql-backend:production
+docker tag allotr-ws-graphql-backend rafaelpernil/allotr-ws-graphql-backend:latest
+docker push rafaelpernil/allotr-ws-graphql-backend:latest
 
 kubectl apply -f ./artifacts/deployment.yaml
 kubectl apply -f ./artifacts/service.yaml
