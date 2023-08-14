@@ -1,0 +1,105 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: allotr-ws-graphql-backend
+  namespace: openfaas-fn
+  labels:
+    app: allotr-ws-graphql-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: allotr-ws-graphql-backend
+  template:
+    metadata:
+      labels:
+        app: allotr-ws-graphql-backend
+    spec:
+      containers:
+        - name: allotr-ws-graphql-backend
+          image: rafaelpernil/allotr-ws-graphql-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name:  GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  GOOGLE_CLIENT_ID
+            - name:  GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  GOOGLE_CLIENT_SECRET
+            - name:  GOOGLE_CALLBACK_URL
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  GOOGLE_CALLBACK_URL
+            - name:  SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  SESSION_SECRET
+            - name:  REDIRECT_URL
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  REDIRECT_URL
+            - name:  VAPID_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  VAPID_PUBLIC_KEY
+            - name:  VAPID_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  VAPID_PRIVATE_KEY
+            - name:  MONGO_DB_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  MONGO_DB_ENDPOINT
+            - name:  REDIS_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  REDIS_ENDPOINT
+            - name:  REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  REDIS_PORT
+            - name:  DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  DB_NAME
+            - name:  IS_HTTPS
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  IS_HTTPS
+            - name:  SSL_CRT_FILE
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  SSL_CRT_FILE
+            - name:  SSL_KEY_FILE
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  SSL_KEY_FILE
+            - name:  HTTPS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  HTTPS_PORT
+            - name:  WS_PATH
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  WS_PATH
+      restartPolicy: Always
