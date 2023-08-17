@@ -9,7 +9,7 @@
     "watch-tsc": "tsc -w",
     "build": "tsc -build tsconfig.json",
     "start": "node ./dist/index.js",
-    "debug-server": "nodemon src/index.ts"
+    "debug-server": "nodemon ./dist/index.js"
   },
   "keywords": [],
   "author": "",
