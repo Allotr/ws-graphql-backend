@@ -24,9 +24,5 @@ function generateChannelId(communicationToken: string, userId?: ObjectId | null)
     return communicationToken + "_" + (userId ? new ObjectId(userId).toHexString() : "")
 }
 
-function getBooleanByString(value: string): boolean {
-    return value.toLowerCase() === 'true' || value.toUpperCase() === 'Y';
-}
 
-
-export { customTryCatch, compareDates, generateChannelId, getBooleanByString }
+export { customTryCatch, compareDates, generateChannelId }

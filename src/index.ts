@@ -7,7 +7,7 @@ import { useServer } from "graphql-ws/lib/use/ws"
 import { execute, subscribe } from 'graphql';
 import schema from "./graphql/schemasMap";
 import { getLoadedEnvVariables } from "./utils/env-loader";
-import { initializeGooglePassport, isLoggedIn, passportMiddleware, passportSessionMiddleware, sessionMiddleware } from "./auth/google-passport";
+import { initializeGooglePassport, passportMiddleware, passportSessionMiddleware, sessionMiddleware } from "./auth/google-passport";
 import { createOnConnect } from "graphql-passport";
 import { connectionMiddleware } from "./utils/connection-utils";
 
@@ -33,8 +33,7 @@ const server = app.listen(HTTPS_PORT, () => {
                 connectionMiddleware,
                 sessionMiddleware,
                 passportMiddleware,
-                passportSessionMiddleware,
-                isLoggedIn
+                passportSessionMiddleware
             ])(ctx.connectionParams ?? {}, ctx.extra.socket as any));
             return req;
         }, // or static context by supplying the value direcly

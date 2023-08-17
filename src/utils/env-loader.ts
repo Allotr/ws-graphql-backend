@@ -17,8 +17,7 @@ function getLoadedEnvVariables(): EnvObject {
         SSL_CRT_FILE: undefined,
         SSL_KEY_FILE: undefined,
         HTTPS_PORT: undefined,
-        WS_PATH: undefined,
-        WHITELIST_MODE: undefined
+        WS_PATH: undefined
     }
     const loadedVariables = Object.fromEntries(Object.entries(variablesToLoad).map(([key]) => ([key, process.env[key]]))) as EnvObject;
     areVariablesValid(loadedVariables);

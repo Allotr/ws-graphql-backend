@@ -9,7 +9,6 @@ import session from "express-session";
 import MongoStore from 'connect-mongo';
 import { USERS, USER_WHITELIST } from "../consts/collections";
 import { getMongoDBConnection } from "../utils/mongodb-connector";
-import { getBooleanByString } from "../utils/data-util";
 
 const cors = require('cors');
 
@@ -41,9 +40,7 @@ function initializeGooglePassport(app: express.Express) {
         GOOGLE_CLIENT_ID,
         GOOGLE_CLIENT_SECRET,
         GOOGLE_CALLBACK_URL,
-        REDIRECT_URL,
-        WHITELIST_MODE
-     } = getLoadedEnvVariables();
+        REDIRECT_URL } = getLoadedEnvVariables();
     const corsOptions = {
         origin: REDIRECT_URL,
         credentials: true // <-- REQUIRED backend setting
@@ -68,18 +65,7 @@ function initializeGooglePassport(app: express.Express) {
                 const currentUser = await db.collection<UserDbObject>(USERS).findOne({ oauthIds: { googleId: profile.id } })
 
                  // Obtain username
-                 const username = profile?._json?.email?.split?.('@')?.[0] ?? '';
-
-                 // Closed beta feature - Only allow access to whitelisted users
-                 const isWhiteListModeOn = getBooleanByString(WHITELIST_MODE);
-                 if (isWhiteListModeOn) {
-                     const isInWhiteList = await db.collection<UserWhitelistDbObject>(USER_WHITELIST).findOne({ username });
- 
-                     if (!isInWhiteList) {
-                         done(new Error("This is a closed beta. Ask me on Twitter (@rafaelpernil) to give you access. Thanks for your time :)"))
-                         return;
-                     }
-                 }
+                const username = profile?._json?.email?.split?.('@')?.[0] ?? '';
 
                 //check if user already exists in our db with the given profile ID
                 if (currentUser) {
