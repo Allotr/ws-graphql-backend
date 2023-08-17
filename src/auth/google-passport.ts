@@ -1,15 +1,15 @@
 import express from "express";
-import { UserDbObject, GlobalRole } from "allotr-graphql-schema-types";
+import { getLoadedEnvVariables } from "../utils/env-loader";
+import { UserDbObject, UserWhitelistDbObject, GlobalRole } from "allotr-graphql-schema-types";
 import { ObjectId } from "mongodb"
 
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
 import MongoStore from 'connect-mongo';
-import { USERS } from "../consts/collections";
-import { getLoadedEnvVariables } from "../utils/env-loader";
+import { USERS, USER_WHITELIST } from "../consts/collections";
 import { getMongoDBConnection } from "../utils/mongodb-connector";
-// import { GraphQLLocalStrategy, buildContext, createOnConnect } from 'graphql-passport';
+
 const cors = require('cors');
 
 function isLoggedIn(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -27,7 +27,7 @@ const sessionMiddleware = session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { domain: '.allotr.eu' },
+    cookie: { domain: '.allotr.eu', maxAge: 30 * 24 * 60 * 60 * 1000 },
     store: new MongoStore({ mongoUrl: MONGO_DB_ENDPOINT }),
 })
 
@@ -63,6 +63,16 @@ function initializeGooglePassport(app: express.Express) {
                 // passport callback function
                 const db = await (await getMongoDBConnection()).db;
                 const currentUser = await db.collection<UserDbObject>(USERS).findOne({ oauthIds: { googleId: profile.id } })
+
+                // Closed beta feature - Only allow access to whitelisted users
+                const username = profile?._json?.email?.split?.('@')?.[0] ?? '';
+                const isInWhiteList = await db.collection<UserWhitelistDbObject>(USER_WHITELIST).findOne({ username });
+
+                if (!isInWhiteList) {
+                    done(new Error("This is a closed beta. Ask me on Twitter (@rafaelpernil) to give you access. Thanks for your time :)"))
+                    return;
+                }
+
                 //check if user already exists in our db with the given profile ID
                 if (currentUser) {
                     //if we already have a record with the given profile ID
@@ -70,7 +80,7 @@ function initializeGooglePassport(app: express.Express) {
                 } else {
                     //if not, create a new user 
                     const userToCreate = {
-                        username: profile._json.email.split('@')?.[0],
+                        username,
                         globalRole: GlobalRole.User,
                         creationDate: new Date(),
                         name: profile.name?.givenName,
@@ -93,7 +103,7 @@ function initializeGooglePassport(app: express.Express) {
 
     passport.deserializeUser<ObjectId>(async (id, done) => {
         try {
-            const db = await(await getMongoDBConnection()).db;
+            const db = await (await getMongoDBConnection()).db;
             const idToSearch = new ObjectId(id);
             const user = await db.collection<UserDbObject>(USERS).findOne({ _id: idToSearch });
             done(null, user);
