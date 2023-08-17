@@ -102,4 +102,9 @@ spec:
                 secretKeyRef:
                   name:  allotr-ws-graphql-backend-secret
                   key:  WS_PATH
+            - name:  WHITELIST_MODE
+              valueFrom:
+                secretKeyRef:
+                  name:  allotr-ws-graphql-backend-secret
+                  key:  WHITELIST_MODE
       restartPolicy: Always
