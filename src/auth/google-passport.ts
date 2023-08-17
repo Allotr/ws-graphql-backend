@@ -64,7 +64,7 @@ function initializeGooglePassport(app: express.Express) {
                 const db = await (await getMongoDBConnection()).db;
                 const currentUser = await db.collection<UserDbObject>(USERS).findOne({ oauthIds: { googleId: profile.id } })
 
-                 // Obtain username
+                // Obtain username
                 const username = profile?._json?.email?.split?.('@')?.[0] ?? '';
 
                 //check if user already exists in our db with the given profile ID
