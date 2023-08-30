@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM node:18.17.1-alpine3.18
+FROM node:18.17.1-alpine3.18
 
 
 # Create project directory (workdir)
