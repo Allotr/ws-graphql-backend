@@ -21,7 +21,7 @@ const { HTTPS_PORT, WS_PATH } = getLoadedEnvVariables();
 
 const server = app.listen(HTTPS_PORT, () => {
     console.log(`GraphQL websocket server running using on port ${HTTPS_PORT}`);
-    const wsServer = new ws.Server({ server, path: "/" });
+    const wsServer = new ws.Server({ server, path: WS_PATH });
     // GraphQL initialization
     useServer({
         schema,
