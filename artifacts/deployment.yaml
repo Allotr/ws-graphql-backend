@@ -18,7 +18,7 @@ spec:
       containers:
         - name: allotr-ws-graphql-backend
           image: rafaelpernil/allotr-ws-graphql-backend:latest
-          serviceAccountName: default
+          serviceAccountName: custom-account
           automountServiceAccountToken: false
           imagePullPolicy: Always
           ports:
@@ -26,8 +26,10 @@ spec:
           resources:
             limits:
               memory: 1Gi
+              cpu: "500m"
             requests:
               memory: 1Gi
+              cpu: "250m"
           env:
             - name:  GOOGLE_CLIENT_ID
               valueFrom:
