@@ -2,7 +2,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: allotr-ws-graphql-backend
-  namespace: openfaas-fn
+  namespace: allotr
   labels:
     app: allotr-ws-graphql-backend
 spec:
@@ -28,7 +28,7 @@ spec:
               memory: 1Gi
               cpu: "500m"
             requests:
-              memory: 1Gi
+              memory: 256Mi
               cpu: "250m"
           env:
             - name:  GOOGLE_CLIENT_ID
