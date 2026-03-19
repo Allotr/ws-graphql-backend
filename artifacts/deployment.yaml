@@ -17,9 +17,7 @@ spec:
     spec:
       containers:
         - name: allotr-ws-graphql-backend
-          image: rafaelpernil/allotr-ws-graphql-backend:latest
-          serviceAccountName: custom-account
-          automountServiceAccountToken: false
+          image: rafaelpernil/allotr-ws-graphql-backend
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
